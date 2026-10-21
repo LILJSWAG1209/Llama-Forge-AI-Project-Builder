@@ -1,0 +1,1177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LlamaForge — Private Web & Game Builder</title>
+<style>
+:root {
+  color-scheme: dark;
+  --bg:#10111b; --panel:#191a29; --panel2:#222338; --line:#38334e;
+  --text:#f2efff; --muted:#a5a0bb; --accent:#ff35d3; --accent2:#00e5ff;
+  --accentText:#160d1d; --topbar:#141522; --message:#222338;
+  --userMessage:#29203b; --shadow:#ff35d322;
+}
+* { box-sizing:border-box; }
+body {
+  margin:0; height:100vh; overflow:hidden; background:var(--bg); color:var(--text);
+  font:14px Inter,system-ui,Arial,sans-serif;
+}
+button,input,textarea,select { font:inherit; }
+button { cursor:pointer; }
+.topbar {
+  height:62px; display:flex; align-items:center; gap:12px; padding:0 17px;
+  background:var(--topbar); border-bottom:1px solid var(--line);
+}
+.brand { display:flex; align-items:center; gap:9px; font-size:17px; font-weight:750; white-space:nowrap; }
+.logo {
+  width:29px; height:29px; display:grid; place-items:center; border-radius:9px;
+  background:var(--accent); color:var(--accentText); box-shadow:0 0 14px var(--shadow);
+}
+.top-tab,.quiet { border:0; border-radius:8px; padding:9px 11px; background:transparent; color:var(--muted); }
+.top-tab.active,.top-tab:hover,.quiet:hover { background:var(--panel2); color:var(--text); }
+.spacer { flex:1; }
+.status { display:flex; align-items:center; gap:7px; color:var(--muted); font-size:12px; white-space:nowrap; }
+.dot { width:8px; height:8px; border-radius:50%; background:#818a99; }
+.dot.online { background:#13d992; }
+.dot.error { background:#ff6d74; }
+.primary {
+  border:0; border-radius:9px; padding:10px 14px; background:var(--accent);
+  color:var(--accentText); font-weight:750; box-shadow:0 0 12px var(--shadow);
+}
+.primary:hover { filter:brightness(1.1); }
+.primary:disabled { opacity:.5; cursor:wait; }
+.workspace {
+  height:calc(100vh - 62px); padding:12px;
+  display:grid; grid-template-columns:180px minmax(310px,.9fr) minmax(340px,1.1fr); gap:11px;
+}
+.panel { min-width:0; min-height:0; overflow:hidden; border:1px solid var(--line); border-radius:14px; background:var(--panel); box-shadow:0 0 18px var(--shadow); }
+.sidebar { padding:13px 9px; }
+.side-title { padding:5px 9px 12px; color:var(--muted); font-size:10px; letter-spacing:1px; text-transform:uppercase; }
+.tool {
+  display:flex; align-items:center; gap:10px; width:100%; padding:11px 9px;
+  border:0; border-radius:8px; background:transparent; color:var(--muted); text-align:left;
+}
+.tool:hover,.tool.selected { background:var(--panel2); color:var(--text); }
+.tool.selected { box-shadow:inset 2px 0 var(--accent); }
+.tool-icon { width:18px; text-align:center; }
+.divider { height:1px; margin:12px 5px; background:var(--line); }
+.chat { display:flex; flex-direction:column; }
+.chat-head { min-height:55px; display:flex; align-items:center; gap:10px; padding:10px 13px; border-bottom:1px solid var(--line); }
+.avatar { width:31px; height:31px; display:grid; place-items:center; border-radius:50%; background:var(--panel2); }
+.title { font-weight:700; }
+.subtitle { margin-top:3px; color:var(--muted); font-size:11px; }
+.messages { flex:1; overflow:auto; padding:15px 13px; }
+.welcome h1 { margin:9px 0; font-size:20px; }
+.welcome p { color:var(--muted); line-height:1.6; }
+.message {
+  max-width:96%; margin:0 0 12px; padding:10px 12px; border:1px solid var(--line);
+  border-radius:11px; background:var(--message); white-space:pre-wrap; overflow-wrap:anywhere; line-height:1.5;
+}
+.message.user { margin-left:auto; background:var(--userMessage); }
+.role { margin-bottom:5px; color:var(--muted); font-size:10px; font-weight:700; text-transform:uppercase; }
+.composer-wrap { padding:11px; border-top:1px solid var(--line); }
+.model-row { display:flex; align-items:center; gap:7px; flex-wrap:wrap; margin-bottom:8px; }
+.model-row label { color:var(--muted); font-size:11px; }
+select,.small-button {
+  min-width:0; padding:6px 8px; border:1px solid var(--line);
+  border-radius:8px; background:var(--panel2); color:var(--text);
+}
+select { max-width:190px; }
+.small-button { color:var(--text); }
+.composer { padding:9px; border:1px solid var(--line); border-radius:11px; background:var(--panel2); }
+textarea { display:block; width:100%; height:66px; resize:vertical; border:0; outline:0; background:transparent; color:var(--text); line-height:1.5; }
+.composer-bottom { display:flex; align-items:center; justify-content:space-between; gap:8px; color:var(--muted); font-size:11px; }
+.smart-row { display:flex; align-items:center; gap:7px; flex:1; min-width:175px; }
+.smart-row label { color:var(--muted); font-size:11px; white-space:nowrap; }
+.smart-row input { width:70px; accent-color:var(--accent); }
+.smart-value { min-width:28px; color:var(--muted); font-size:11px; }
+.preview { display:flex; flex-direction:column; background:#f5f6f8; color:#20242b; }
+.preview-head { min-height:49px; display:flex; align-items:center; gap:8px; padding:0 12px; border-bottom:1px solid #e2e5e9; background:white; }
+.preview-head strong { font-size:13px; }
+.preview-button { padding:6px 9px; border:1px solid #e1e4e9; border-radius:7px; background:white; color:#555d69; }
+.preview-button:hover { background:#f0f2f5; }
+.device-select { max-width:100px; padding:5px 7px; border-color:#e1e4e9; background:white; color:#333; font-size:12px; }
+.frame-wrap { flex:1; min-height:0; display:flex; justify-content:center; overflow:auto; padding:12px; }
+iframe { width:100%; height:100%; min-height:350px; border:1px solid #dfe3e8; border-radius:8px; background:white; }
+iframe.phone { width:390px; flex:0 0 390px; }
+iframe.tablet { width:768px; flex:0 0 768px; }
+.preview-empty {
+  width:100%; min-height:350px; display:grid; place-items:center; padding:25px;
+  border:1px dashed #cbd0d8; border-radius:9px; background:white; color:#737c88; text-align:center; line-height:1.7;
+}
+.toast {
+  position:fixed; right:18px; bottom:18px; z-index:30; max-width:390px; padding:12px 15px;
+  border:1px solid var(--line); border-radius:10px; background:var(--panel2); color:var(--text); box-shadow:0 10px 30px #0005;
+}
+.hidden { display:none !important; }
+dialog {
+  width:min(760px,calc(100vw - 24px)); max-height:90vh; padding:0;
+  border:1px solid var(--line); border-radius:14px; background:var(--panel); color:var(--text);
+}
+dialog::backdrop { background:#080b10bb; backdrop-filter:blur(3px); }
+.dialog-head { display:flex; align-items:center; padding:15px 18px; border-bottom:1px solid var(--line); }
+.dialog-head h2 { margin:0; font-size:17px; }
+.dialog-head button { margin-left:auto; }
+.dialog-body { max-height:68vh; overflow:auto; padding:16px; }
+.dialog-copy { margin-top:0; color:var(--muted); line-height:1.55; }
+.library-form { display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:13px; border:1px solid var(--line); border-radius:11px; background:var(--panel2); }
+.library-form label { display:block; margin:0 0 5px; color:var(--muted); font-size:11px; }
+.library-form input,.library-form textarea {
+  width:100%; padding:9px; border:1px solid var(--line); border-radius:8px; outline:0; background:var(--bg); color:var(--text);
+}
+.library-form textarea { height:70px; resize:vertical; }
+.full { grid-column:1 / -1; }
+.form-actions { display:flex; justify-content:flex-end; gap:8px; }
+.game-list { display:grid; gap:9px; margin-top:14px; }
+.game-item { display:grid; grid-template-columns:58px 1fr auto; align-items:center; gap:11px; padding:10px; border:1px solid var(--line); border-radius:10px; background:var(--panel2); }
+.game-cover { width:58px; height:58px; border-radius:8px; object-fit:cover; background:var(--line); }
+.game-info strong { display:block; margin-bottom:4px; }
+.game-info span { color:var(--muted); font-size:12px; }
+.delete-game { border:1px solid #75404e; border-radius:7px; padding:6px 8px; background:#38272d; color:#ffc2c7; }
+.library-empty { padding:18px; text-align:center; color:var(--muted); }
+.theme-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+.theme-card { min-height:120px; padding:12px; border:1px solid var(--line); border-radius:12px; background:var(--panel2); color:var(--text); text-align:left; }
+.theme-card:hover { border-color:var(--accent); }
+.theme-card.active { outline:2px solid var(--accent); }
+.theme-preview { display:flex; gap:6px; margin-bottom:12px; }
+.theme-swatch { height:35px; flex:1; border-radius:6px; }
+.theme-name { font-weight:700; }
+.theme-description { margin-top:4px; color:var(--muted); font-size:11px; }
+.site-theme-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+.site-theme-card { min-height:82px; padding:11px; border:1px solid var(--line); border-radius:10px; background:var(--panel2); color:var(--text); text-align:left; }
+.site-theme-card:hover { border-color:var(--accent); }
+.site-theme-card.active { outline:2px solid var(--accent); }
+.site-theme-card strong { display:block; margin-bottom:5px; }
+.site-theme-card span { color:var(--muted); font-size:11px; }
+.site-options { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:14px; }
+.site-options label { color:var(--muted); font-size:12px; }
+.site-options input[type=color] { display:block; width:100%; height:38px; margin-top:6px; border:1px solid var(--line); border-radius:8px; background:var(--panel2); }
+.feature-toolbar { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px; }
+.feature-search { flex:1; min-width:170px; padding:9px 10px; border:1px solid var(--line); border-radius:8px; background:var(--panel2); color:var(--text); outline:0; }
+.feature-list { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+.feature-option { display:flex; align-items:flex-start; gap:9px; padding:10px; border:1px solid var(--line); border-radius:9px; background:var(--panel2); cursor:pointer; }
+.feature-option:hover { border-color:var(--accent); }
+.feature-option input { margin:2px 0 0; accent-color:var(--accent); }
+.feature-option strong { display:block; font-size:12px; }
+.feature-option small { display:block; margin-top:3px; color:var(--muted); line-height:1.4; }
+.feature-count { color:var(--muted); font-size:11px; }
+.custom-feature-row { display:flex; gap:8px; margin-top:12px; }
+.custom-feature-row input { flex:1; min-width:0; padding:9px 10px; border:1px solid var(--line); border-radius:8px; background:var(--panel2); color:var(--text); outline:0; }
+.selected-features { margin-top:13px; padding:10px; border:1px solid var(--line); border-radius:9px; background:var(--bg); }
+.selected-features strong { font-size:12px; }
+.chip-list { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+.chip { padding:5px 8px; border:1px solid var(--line); border-radius:999px; background:var(--panel2); color:var(--text); font-size:11px; }
+.feature-help { margin:12px 0 0; color:var(--muted); font-size:11px; line-height:1.5; }
+@media(max-width:900px) {
+  .workspace { grid-template-columns:48px minmax(280px,1fr); }
+  .sidebar { padding:9px 4px; }
+  .side-title,.tool-label { display:none; }
+  .tool { justify-content:center; padding:11px 3px; }
+  .preview { display:none; }
+  .topbar { gap:7px; padding:0 9px; }
+  .top-tab { display:none; }
+}
+@media(max-width:500px) {
+  .brand { font-size:14px; }
+  .status { display:none; }
+  .workspace { padding:6px; gap:6px; grid-template-columns:40px minmax(0,1fr); }
+  .primary { padding:9px 10px; }
+  .library-form,.theme-grid,.site-theme-grid,.site-options,.feature-list { grid-template-columns:1fr; }
+  .full { grid-column:auto; }
+  .game-item { grid-template-columns:48px 1fr auto; }
+  .game-cover { width:48px; height:48px; }
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand"><span class="logo">L</span>LlamaForge</div>
+  <button class="top-tab active" data-view="workspace">Workspace</button>
+  <button class="top-tab" data-view="preview">Preview</button>
+  <div class="spacer"></div>
+  <div class="status"><span id="statusDot" class="dot"></span><span id="statusText">Checking Ollama…</span></div>
+  <button class="primary" id="checkButton">↻ Check Ollama</button>
+</header>
+
+<main class="workspace">
+  <aside class="panel sidebar">
+    <div class="side-title">Create a project</div>
+    <button class="tool selected" data-type="web"><span class="tool-icon">🌐</span><span class="tool-label">Web App</span></button>
+    <button class="tool" data-type="game"><span class="tool-icon">🎮</span><span class="tool-label">Browser Game</span></button>
+    <button class="tool" data-type="portfolio"><span class="tool-icon">🕹️</span><span class="tool-label">Game Website</span></button>
+    <button class="tool" data-type="gamepages"><span class="tool-icon">✨</span><span class="tool-label">Landing / Login</span></button>
+    <div class="divider"></div>
+    <button class="tool" id="siteThemeButton"><span class="tool-icon">🖌️</span><span class="tool-label">Website Style</span></button>
+    <button class="tool" id="featureButton"><span class="tool-icon">🧩</span><span class="tool-label">Feature Ideas</span></button>
+    <button class="tool" id="libraryButton"><span class="tool-icon">📚</span><span class="tool-label">Game Library</span></button>
+    <button class="tool" id="themeButton"><span class="tool-icon">🎨</span><span class="tool-label">Builder Theme</span></button>
+    <button class="tool" id="newButton"><span class="tool-icon">＋</span><span class="tool-label">New chat</span></button>
+    <button class="tool" id="downloadButton"><span class="tool-icon">⇩</span><span class="tool-label">Download HTML</span></button>
+    <button class="tool" id="exportZipButton"><span class="tool-icon">📦</span><span class="tool-label">Export Project ZIP</span></button>
+  </aside>
+
+  <section class="panel chat">
+    <div class="chat-head">
+      <span class="avatar">🦙</span>
+      <div><div class="title">LlamaForge AI</div><div class="subtitle" id="projectSubtitle">Web App · Local Ollama</div></div>
+      <div class="spacer"></div>
+      <button class="quiet" id="clearButton" title="Clear chat">⌫</button>
+    </div>
+
+    <div class="messages" id="messages">
+      <div class="welcome" id="welcome">
+        <h1 id="welcomeTitle">Build a web app</h1>
+        <p id="welcomeText">Describe a website or web app. Choose feature ideas to tell the AI what to include.</p>
+        <p><strong>Tip:</strong> Select a project type, choose ideas, then describe your project.</p>
+      </div>
+    </div>
+
+    <div class="composer-wrap">
+      <div class="model-row">
+        <label for="modelSelect">Ollama model</label>
+        <select id="modelSelect"><option value="">Loading models…</option></select>
+        <button class="small-button" id="modelsButton">↻ Models</button>
+        <div class="smart-row" title="Lower values are more consistent; higher values encourage more variation.">
+          <label for="creativity">Creativity</label>
+          <input id="creativity" type="range" min="0" max="100" value="25">
+          <span class="smart-value" id="creativityValue">25%</span>
+        </div>
+      </div>
+      <div class="composer">
+        <textarea id="prompt" placeholder="Describe what you want to build… (Enter to send)"></textarea>
+        <div class="composer-bottom">
+          <span id="hint">Choose ideas with 🧩 Feature Ideas.</span>
+          <button class="primary" id="generateButton">✦ Generate</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel preview" id="previewPanel">
+    <div class="preview-head">
+      <strong id="previewTitle">Web App Preview</strong>
+      <div class="spacer"></div>
+      <select class="device-select" id="deviceSelect" aria-label="Preview size">
+        <option value="desktop">Desktop</option><option value="tablet">Tablet</option><option value="phone">Phone</option>
+      </select>
+      <button class="preview-button" id="refreshButton" title="Refresh preview">↻</button>
+      <button class="preview-button" id="openButton" title="Open preview">↗</button>
+    </div>
+    <div class="frame-wrap" id="frameWrap">
+      <div class="preview-empty">Your generated project will appear here.<br>Choose a project type, add ideas, and click <strong>Generate</strong>.</div>
+    </div>
+  </section>
+</main>
+
+<dialog id="featureDialog">
+  <div class="dialog-head"><h2>🧩 Feature Ideas</h2><button class="quiet" id="closeFeatures" aria-label="Close">✕</button></div>
+  <div class="dialog-body">
+    <p class="dialog-copy">Select features to include in your next build or update. Ideas change with your project type.</p>
+    <div class="feature-toolbar">
+      <input class="feature-search" id="featureSearch" type="search" placeholder="Search feature ideas…">
+      <span class="feature-count" id="featureCount">0 selected</span>
+      <button class="small-button" id="clearFeatures">Clear</button>
+    </div>
+    <div class="feature-list" id="featureList"></div>
+    <div class="custom-feature-row">
+      <input id="customFeature" maxlength="160" placeholder="Add your own feature idea…">
+      <button class="small-button" id="addCustomFeature">＋ Add</button>
+    </div>
+    <div class="selected-features">
+      <strong>Selected for the next generation</strong>
+      <div class="chip-list" id="selectedFeatureChips"></div>
+    </div>
+    <p class="feature-help">Ideas become instructions for the AI. Login-page ideas are front-end UI only; real accounts need a secure backend.</p>
+    <div class="form-actions" style="margin-top:15px"><button class="primary" id="doneFeatures">Done</button></div>
+  </div>
+</dialog>
+
+<dialog id="siteThemeDialog">
+  <div class="dialog-head"><h2>🖌️ Choose Website Style</h2><button class="quiet" id="closeSiteTheme" aria-label="Close">✕</button></div>
+  <div class="dialog-body">
+    <p class="dialog-copy">Pick the style for the website the AI will build. This does not change LlamaForge’s interface.</p>
+    <div class="site-theme-grid" id="siteThemeGrid"></div>
+    <div class="site-options">
+      <label>Custom primary color<input type="color" id="sitePrimaryColor" value="#ff35d3"></label>
+      <label>Custom secondary color<input type="color" id="siteSecondaryColor" value="#00e5ff"></label>
+    </div>
+    <div class="form-actions" style="margin-top:16px"><button class="primary" id="saveSiteTheme">Use This Website Style</button></div>
+  </div>
+</dialog>
+
+<dialog id="libraryDialog">
+  <div class="dialog-head"><h2>📚 Game Library</h2><button class="quiet" id="closeLibrary" aria-label="Close">✕</button></div>
+  <div class="dialog-body">
+    <p class="dialog-copy">Add games to your browser library, then include them in a generated Game Website.</p>
+    <form class="library-form" id="gameForm">
+      <div><label for="gameName">Game title *</label><input id="gameName" required maxlength="80" placeholder="My Awesome Game"></div>
+      <div><label for="gameCategory">Category</label><input id="gameCategory" maxlength="40" placeholder="Adventure"></div>
+      <div class="full"><label for="gameDescription">Description</label><textarea id="gameDescription" maxlength="500" placeholder="What is your game about?"></textarea></div>
+      <div><label for="gameImage">Cover image URL</label><input id="gameImage" type="url" placeholder="https://example.com/cover.jpg"></div>
+      <div><label for="gameLink">Play or download link</label><input id="gameLink" type="url" placeholder="https://example.com/my-game"></div>
+      <div class="full form-actions">
+        <button type="button" class="small-button" id="generateSiteButton">Generate Game Website</button>
+        <button type="submit" class="primary">＋ Add Game</button>
+      </div>
+    </form>
+    <div class="game-list" id="gameList"></div>
+  </div>
+</dialog>
+
+<dialog id="themeDialog">
+  <div class="dialog-head"><h2>🎨 Choose Builder Theme</h2><button class="quiet" id="closeTheme" aria-label="Close">✕</button></div>
+  <div class="dialog-body">
+    <p class="dialog-copy">This changes LlamaForge’s interface, not the generated website.</p>
+    <div class="theme-grid" id="builderThemeGrid"></div>
+  </div>
+</dialog>
+
+<div id="toast" class="toast hidden" role="status"></div>
+
+<script>
+"use strict";
+
+const OLLAMA = "http://localhost:11434";
+const CHAT_KEY = "llamaforge-chat-v2";
+const HTML_KEY = "llamaforge-html";
+const TYPE_KEY = "llamaforge-project-type";
+const GAMES_KEY = "llamaforge-game-library";
+const SETTINGS_KEY = "llamaforge-ai-settings";
+const BUILDER_THEME_KEY = "llamaforge-builder-theme";
+const SITE_THEME_KEY = "llamaforge-site-theme";
+const FEATURES_KEY = "llamaforge-selected-features";
+
+const builderThemes = {
+  cyberpunk:{name:"Cyberpunk",description:"Neon pink, electric blue, dark city interface.",colors:{bg:"#10111b",panel:"#191a29",panel2:"#222338",line:"#38334e",text:"#f2efff",muted:"#a5a0bb",accent:"#ff35d3",accent2:"#00e5ff",accentText:"#160d1d",topbar:"#141522",message:"#222338",userMessage:"#29203b",shadow:"#ff35d322"}},
+  neon:{name:"Neon Arcade",description:"Electric green accents with deep charcoal panels.",colors:{bg:"#101713",panel:"#18221e",panel2:"#22312a",line:"#345043",text:"#eafff4",muted:"#9bb9a9",accent:"#48ff9b",accent2:"#00e5ff",accentText:"#082015",topbar:"#121c17",message:"#202c26",userMessage:"#18382b",shadow:"#48ff9b22"}},
+  midnight:{name:"Midnight",description:"Deep navy with cool violet highlights.",colors:{bg:"#111522",panel:"#1a2030",panel2:"#252d42",line:"#35405a",text:"#edf2ff",muted:"#a0abc1",accent:"#8b83ff",accent2:"#53d9ff",accentText:"#111126",topbar:"#151b29",message:"#222a3d",userMessage:"#292b4a",shadow:"#8b83ff22"}},
+  sunset:{name:"Sunset",description:"Warm orange and coral on a dark plum base.",colors:{bg:"#1a1218",panel:"#241922",panel2:"#33232c",line:"#543442",text:"#fff0e9",muted:"#c0a2a0",accent:"#ff8a4c",accent2:"#ff4f88",accentText:"#28110c",topbar:"#20151d",message:"#30212b",userMessage:"#442536",shadow:"#ff8a4c22"}},
+  light:{name:"Clean Light",description:"Bright neutral workspace with blue accents.",colors:{bg:"#eef1f6",panel:"#ffffff",panel2:"#f2f4f8",line:"#d9deea",text:"#202638",muted:"#667085",accent:"#4263eb",accent2:"#00a6c7",accentText:"#ffffff",topbar:"#ffffff",message:"#f6f7fa",userMessage:"#e8efff",shadow:"#4263eb15"}}
+};
+
+const websiteThemes = {
+  cyberpunk:{name:"Cyberpunk",description:"Neon city, dark surfaces, glowing accents.",prompt:"Cyberpunk aesthetic: dark backgrounds, vivid neon pink and electric cyan accents, futuristic typography, glowing borders, sci-fi details, dramatic contrast."},
+  minimal:{name:"Minimal",description:"Clean layout, whitespace, understated colors.",prompt:"Minimal modern aesthetic: generous whitespace, clean typography, restrained neutral palette, simple shapes, clear hierarchy, subtle borders."},
+  fantasy:{name:"Fantasy",description:"Mythic worlds, rich colors, ornamental detail.",prompt:"Fantasy aesthetic: rich jewel tones, elegant serif headings, atmospheric gradients, subtle magical motifs, ornate but readable details."},
+  retro:{name:"Retro Arcade",description:"Pixel-inspired colors and classic game energy.",prompt:"Retro arcade aesthetic: bold saturated colors, pixel-inspired details, chunky headings, playful cards, nostalgic but readable interface."},
+  cozy:{name:"Cozy Pastel",description:"Soft colors, friendly shapes, welcoming feel.",prompt:"Cozy pastel aesthetic: warm cream backgrounds, soft accents, rounded cards, friendly typography, gentle shadows."},
+  custom:{name:"Custom Colors",description:"Use the primary and secondary colors below.",prompt:"Use the selected custom primary and secondary colors consistently. Keep strong contrast and accessible text."}
+};
+
+const featureCatalog = {
+  web:[
+    ["Search","Add a working search field that filters displayed content."],
+    ["Category filters","Add clickable category filters."],
+    ["Dark mode toggle","Add a working theme toggle and remember it locally."],
+    ["Responsive navigation","Add a mobile-friendly menu."],
+    ["Animations","Add subtle, reduced-motion-friendly transitions."],
+    ["Favorites","Let users save favorites in browser storage."],
+    ["Sorting","Add working sorting controls."],
+    ["Pagination or load more","Let users browse long lists in chunks."],
+    ["Toast messages","Show accessible feedback after actions."],
+    ["Empty states","Show helpful messages when no results are found."]
+  ],
+  game:[
+    ["Start screen","Add a title screen, start button, and instructions."],
+    ["Pause and resume","Add working pause and resume controls."],
+    ["Restart button","Let the player restart without refreshing."],
+    ["Score and best score","Show score and save best score locally."],
+    ["Levels or difficulty","Add levels or difficulty choices."],
+    ["Power-ups","Add temporary power-ups with visual feedback."],
+    ["Sound controls","Add optional effects with a mute toggle."],
+    ["Touch controls","Support phones and tablets."],
+    ["Game over screen","Show the outcome and a play-again action."],
+    ["High-score list","Save a small local high-score list."]
+  ],
+  portfolio:[
+    ["Search games","Search game titles and descriptions."],
+    ["Genre filters","Add clickable genre filters."],
+    ["Featured game","Give one game a featured section."],
+    ["Game detail modal","Open a detail dialog from each game card."],
+    ["Favorites","Let visitors save favorites locally."],
+    ["Responsive game cards","Adapt the game grid to small screens."],
+    ["Sort games","Add alphabetical or category sorting."],
+    ["Trailer preview","Add a trailer only if a real video URL is supplied."]
+  ],
+  gamepages:[
+    ["Show password","Add an accessible show/hide password control."],
+    ["Form validation","Validate fields and show clear inline errors."],
+    ["Remember me UI","Add a checkbox; do not claim server-side persistence."],
+    ["Forgot password UI","Add a front-end demo flow or explanatory modal."],
+    ["Password strength hint","Show a basic client-side strength hint."],
+    ["Accessible form labels","Use associated labels and keyboard-friendly controls."],
+    ["Login / signup switch","Add a front-end switch between the forms."],
+    ["Success feedback","Show a demo success message after valid submission."]
+  ]
+};
+
+const BUILDER_GUIDE = `You are LlamaForge, a careful expert web developer and game creator.
+Plan requested features, layout, interactions, and responsive behavior before producing the result.
+Return ONLY one complete self-contained HTML document beginning with <!doctype html>. Put CSS in <style> and JavaScript in <script>.
+Use semantic HTML, accessible labels, responsive design, and polished visual details. Use browser-native HTML, CSS, and JavaScript. Avoid external libraries and dependencies unless requested.
+Make controls work. Do not claim a static page has secure accounts, saves data remotely, or is published.
+For changes to an existing project, preserve its existing design and features while making the requested changes.`;
+
+const configs = {
+  web:{name:"Web App",title:"Build a web app",description:"Describe a website or web app. Choose feature ideas to tell the AI what to include.",placeholder:"Describe the web app you want… (Enter to send)",hint:"Choose ideas with 🧩 Feature Ideas.",system:"Build a polished, responsive web app with working interactions."},
+  game:{name:"Browser Game",title:"Make a browser game",description:"Describe a game that runs in a browser. Choose gameplay ideas before building.",placeholder:"Describe the browser game you want… (Enter to send)",hint:"Select game ideas to add mechanics.",system:"Build a complete playable browser game using canvas or DOM and vanilla JavaScript. Include clear controls and restart. Support touch where appropriate."},
+  portfolio:{name:"Game Website",title:"Build your game website",description:"Showcase your games with cards, screenshots, descriptions, categories, and links.",placeholder:"Describe your game website… (Enter to send)",hint:"Feature ideas and your Game Library can be included.",system:"Build a polished responsive game portfolio. Use supplied library data; never invent real download URLs."},
+  gamepages:{name:"Game Website Pages",title:"Create your game website pages",description:"Generate a landing page, login page, or both with a consistent design.",placeholder:"Describe the landing page or login page… (Enter to send)",hint:"Login ideas are front-end only; real accounts need a secure backend.",system:"Build the requested game website page or pages. Login forms are front-end demos only; never claim to provide secure accounts or store passwords."}
+};
+
+let projectType = localStorage.getItem(TYPE_KEY) || "web";
+let conversation = [];
+let generatedHTML = localStorage.getItem(HTML_KEY) || "";
+let selectedWebsiteTheme = localStorage.getItem(SITE_THEME_KEY) || "cyberpunk";
+let selectedFeatures = loadSelectedFeatures();
+let toastTimer;
+
+const $ = id => document.getElementById(id);
+
+function loadSelectedFeatures() {
+  try {
+    const data = JSON.parse(localStorage.getItem(FEATURES_KEY) || "{}");
+    return data && typeof data === "object" ? data : {};
+  } catch { return {}; }
+}
+
+function saveSelectedFeatures() {
+  localStorage.setItem(FEATURES_KEY,JSON.stringify(selectedFeatures));
+}
+
+function showToast(message) {
+  $("toast").textContent = message;
+  $("toast").classList.remove("hidden");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => $("toast").classList.add("hidden"),4200);
+}
+
+function setStatus(state,message) {
+  $("statusDot").className = "dot" + (state ? " " + state : "");
+  $("statusText").textContent = message;
+}
+
+function applyBuilderTheme(themeId) {
+  const id = builderThemes[themeId] ? themeId : "cyberpunk";
+  Object.entries(builderThemes[id].colors).forEach(([key,value]) => {
+    const cssName = key.replace(/[A-Z]/g,letter => "-" + letter.toLowerCase());
+    document.documentElement.style.setProperty("--" + cssName,value);
+  });
+  localStorage.setItem(BUILDER_THEME_KEY,id);
+  renderBuilderThemes();
+}
+
+function renderBuilderThemes() {
+  const grid = $("builderThemeGrid");
+  if (!grid) return;
+  grid.replaceChildren();
+  const active = localStorage.getItem(BUILDER_THEME_KEY) || "cyberpunk";
+
+  Object.entries(builderThemes).forEach(([id,theme]) => {
+    const card = document.createElement("button");
+    card.type = "button";
+    card.className = "theme-card" + (active === id ? " active" : "");
+    const preview = document.createElement("div");
+    preview.className = "theme-preview";
+
+    [theme.colors.bg,theme.colors.panel,theme.colors.accent,theme.colors.accent2].forEach(color => {
+      const swatch = document.createElement("span");
+      swatch.className = "theme-swatch";
+      swatch.style.background = color;
+      preview.appendChild(swatch);
+    });
+
+    const name = document.createElement("div");
+    name.className = "theme-name";
+    name.textContent = theme.name;
+    const desc = document.createElement("div");
+    desc.className = "theme-description";
+    desc.textContent = theme.description;
+    card.append(preview,name,desc);
+    card.addEventListener("click",() => {
+      applyBuilderTheme(id);
+      showToast(theme.name + " builder theme applied.");
+    });
+    grid.appendChild(card);
+  });
+}
+
+function renderWebsiteThemes() {
+  const grid = $("siteThemeGrid");
+  grid.replaceChildren();
+
+  Object.entries(websiteThemes).forEach(([id,theme]) => {
+    const card = document.createElement("button");
+    card.type = "button";
+    card.className = "site-theme-card" + (selectedWebsiteTheme === id ? " active" : "");
+    const name = document.createElement("strong");
+    name.textContent = theme.name;
+    const desc = document.createElement("span");
+    desc.textContent = theme.description;
+    card.append(name,desc);
+    card.addEventListener("click",() => {
+      selectedWebsiteTheme = id;
+      localStorage.setItem(SITE_THEME_KEY,id);
+      renderWebsiteThemes();
+    });
+    grid.appendChild(card);
+  });
+}
+
+function renderFeatureList() {
+  const list = $("featureList");
+  const query = $("featureSearch").value.trim().toLowerCase();
+  list.replaceChildren();
+
+  (featureCatalog[projectType] || featureCatalog.web).forEach(([name,description]) => {
+    if (query && !(name + " " + description).toLowerCase().includes(query)) return;
+    const label = document.createElement("label");
+    label.className = "feature-option";
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = (selectedFeatures[projectType] || []).includes(name);
+    checkbox.addEventListener("change",() => {
+      const current = new Set(selectedFeatures[projectType] || []);
+      checkbox.checked ? current.add(name) : current.delete(name);
+      selectedFeatures[projectType] = [...current];
+      saveSelectedFeatures();
+      updateFeatureSummary();
+    });
+    const text = document.createElement("span");
+    const title = document.createElement("strong");
+    title.textContent = name;
+    const detail = document.createElement("small");
+    detail.textContent = description;
+    text.append(title,detail);
+    label.append(checkbox,text);
+    list.appendChild(label);
+  });
+
+  (selectedFeatures[projectType + "_custom"] || []).forEach(name => {
+    if (query && !name.toLowerCase().includes(query)) return;
+    const label = document.createElement("label");
+    label.className = "feature-option";
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = (selectedFeatures[projectType] || []).includes(name);
+    checkbox.addEventListener("change",() => {
+      const current = new Set(selectedFeatures[projectType] || []);
+      checkbox.checked ? current.add(name) : current.delete(name);
+      selectedFeatures[projectType] = [...current];
+      saveSelectedFeatures();
+      updateFeatureSummary();
+    });
+    const text = document.createElement("span");
+    const title = document.createElement("strong");
+    title.textContent = name;
+    const detail = document.createElement("small");
+    detail.textContent = "Custom feature idea";
+    text.append(title,detail);
+    label.append(checkbox,text);
+    list.appendChild(label);
+  });
+
+  updateFeatureSummary();
+}
+
+function updateFeatureSummary() {
+  const selected = selectedFeatures[projectType] || [];
+  $("featureCount").textContent = selected.length + " selected";
+  const chips = $("selectedFeatureChips");
+  chips.replaceChildren();
+
+  if (!selected.length) {
+    const empty = document.createElement("span");
+    empty.className = "feature-count";
+    empty.textContent = "No feature ideas selected.";
+    chips.appendChild(empty);
+    return;
+  }
+
+  selected.forEach(name => {
+    const chip = document.createElement("span");
+    chip.className = "chip";
+    chip.textContent = name;
+    chips.appendChild(chip);
+  });
+}
+
+function addCustomFeature() {
+  const value = $("customFeature").value.trim();
+  if (!value) return;
+  const key = projectType + "_custom";
+  const custom = selectedFeatures[key] || [];
+  if (!custom.some(item => item.toLowerCase() === value.toLowerCase())) custom.push(value);
+  selectedFeatures[key] = custom;
+  const current = new Set(selectedFeatures[projectType] || []);
+  current.add(value);
+  selectedFeatures[projectType] = [...current];
+  $("customFeature").value = "";
+  saveSelectedFeatures();
+  renderFeatureList();
+}
+
+function getFeaturePrompt() {
+  const selected = selectedFeatures[projectType] || [];
+  return selected.length
+    ? "\n\nFEATURE IDEAS THE USER SELECTED — implement these as working features where appropriate:\n- " + selected.map(name => name.replace(/[\r\n]/g," ")).join("\n- ")
+    : "";
+}
+
+function getWebsiteThemePrompt() {
+  if (projectType === "game") return "";
+  const theme = websiteThemes[selectedWebsiteTheme] || websiteThemes.cyberpunk;
+  let text = `\n\nWEBSITE DESIGN STYLE:\n${theme.prompt}`;
+  if (selectedWebsiteTheme === "custom") {
+    text += `\nPrimary color: ${$("sitePrimaryColor").value}. Secondary color: ${$("siteSecondaryColor").value}.`;
+  }
+  return text;
+}
+
+function getGames() {
+  try {
+    const games = JSON.parse(localStorage.getItem(GAMES_KEY) || "[]");
+    return Array.isArray(games) ? games : [];
+  } catch { return []; }
+}
+
+function safeHttpUrl(value) {
+  try {
+    const url = new URL(value);
+    return ["http:","https:"].includes(url.protocol) ? url.href : "";
+  } catch { return ""; }
+}
+
+function renderGameList() {
+  const list = $("gameList");
+  list.replaceChildren();
+  const games = getGames();
+
+  if (!games.length) {
+    const empty = document.createElement("div");
+    empty.className = "library-empty";
+    empty.textContent = "No games added yet. Use the form above to add your first game.";
+    list.appendChild(empty);
+    return;
+  }
+
+  games.forEach((game,index) => {
+    const item = document.createElement("article");
+    item.className = "game-item";
+    const image = document.createElement("img");
+    image.className = "game-cover";
+    image.alt = "";
+    image.src = safeHttpUrl(game.image) || "";
+    image.onerror = () => image.removeAttribute("src");
+
+    const info = document.createElement("div");
+    info.className = "game-info";
+    const name = document.createElement("strong");
+    name.textContent = game.name;
+    const detail = document.createElement("span");
+    detail.textContent = [game.category,game.description].filter(Boolean).join(" · ") || "No description";
+    info.append(name,detail);
+
+    const remove = document.createElement("button");
+    remove.className = "delete-game";
+    remove.type = "button";
+    remove.textContent = "Remove";
+    remove.addEventListener("click",() => {
+      const games = getGames();
+      games.splice(index,1);
+      localStorage.setItem(GAMES_KEY,JSON.stringify(games));
+      renderGameList();
+    });
+    item.append(image,info,remove);
+    list.appendChild(item);
+  });
+}
+
+function addMessage(role,text,save=true) {
+  $("welcome")?.remove();
+  const article = document.createElement("article");
+  article.className = "message " + (role === "user" ? "user" : "assistant");
+  const label = document.createElement("div");
+  label.className = "role";
+  label.textContent = role === "user" ? "You" : "LlamaForge AI";
+  const content = document.createElement("div");
+  content.textContent = text;
+  article.append(label,content);
+  $("messages").appendChild(article);
+  $("messages").scrollTop = $("messages").scrollHeight;
+
+  if (save) {
+    conversation.push({role,content:text,type:projectType});
+    try { localStorage.setItem(CHAT_KEY,JSON.stringify(conversation)); }
+    catch { showToast("Could not save chat in browser storage."); }
+  }
+  return article;
+}
+
+function setProjectType(type) {
+  projectType = configs[type] ? type : "web";
+  localStorage.setItem(TYPE_KEY,projectType);
+  const config = configs[projectType];
+  document.querySelectorAll("[data-type]").forEach(button => {
+    button.classList.toggle("selected",button.dataset.type === projectType);
+  });
+  $("projectSubtitle").textContent = config.name + " · Local Ollama";
+  $("welcomeTitle").textContent = config.title;
+  $("welcomeText").textContent = config.description;
+  $("prompt").placeholder = config.placeholder;
+  $("hint").textContent = config.hint;
+  $("previewTitle").textContent = config.name + " Preview";
+  renderFeatureList();
+}
+
+function restoreChat() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(CHAT_KEY) || "[]");
+    conversation = Array.isArray(saved) ? saved : [];
+    conversation.forEach(item => {
+      if (item && ["user","assistant"].includes(item.role) && typeof item.content === "string") {
+        addMessage(item.role,item.content,false);
+      }
+    });
+  } catch { conversation = []; }
+}
+
+function showPreview(html) {
+  generatedHTML = html;
+  localStorage.setItem(HTML_KEY,html);
+  const frame = document.createElement("iframe");
+  frame.title = "Generated project preview";
+  frame.setAttribute("sandbox","allow-scripts");
+  frame.referrerPolicy = "no-referrer";
+  frame.srcdoc = html;
+  $("frameWrap").replaceChildren(frame);
+  setDeviceSize();
+}
+
+function setDeviceSize() {
+  const frame = $("frameWrap").querySelector("iframe");
+  if (!frame) return;
+  frame.classList.remove("phone","tablet");
+  if ($("deviceSelect").value === "phone") frame.classList.add("phone");
+  if ($("deviceSelect").value === "tablet") frame.classList.add("tablet");
+}
+
+function extractHTML(text) {
+  let html = text.trim().replace(/^```(?:html)?\s*/i,"").replace(/\s*```$/,"").trim();
+  const start = html.search(/<!doctype html|<html[\s>]/i);
+  if (start > 0) html = html.slice(start);
+  if (!/<html[\s>]/i.test(html)) throw new Error("The model did not return a complete HTML page. Try again or choose a code-capable model.");
+  return html;
+}
+
+async function loadModels() {
+  $("modelsButton").disabled = true;
+  $("modelSelect").innerHTML = "<option>Loading models…</option>";
+
+  try {
+    const response = await fetch(OLLAMA + "/api/tags");
+    if (!response.ok) throw new Error("HTTP " + response.status);
+    const data = await response.json();
+    const models = Array.isArray(data.models) ? data.models : [];
+    $("modelSelect").innerHTML = "";
+
+    if (!models.length) {
+      $("modelSelect").innerHTML = '<option value="">No models installed</option>';
+      setStatus("online","Ollama connected · no models");
+      showToast("Ollama is running, but no models are installed.");
+      return;
+    }
+
+    models.forEach(model => {
+      const option = document.createElement("option");
+      option.value = model.name;
+      option.textContent = model.name;
+      $("modelSelect").appendChild(option);
+    });
+
+    const saved = localStorage.getItem("llamaforge-model");
+    if (saved && models.some(model => model.name === saved)) $("modelSelect").value = saved;
+    setStatus("online","Ollama connected");
+  } catch {
+    $("modelSelect").innerHTML = '<option value="">Ollama unavailable</option>';
+    setStatus("error","Ollama not connected");
+    showToast("Cannot reach Ollama at localhost:11434. Make sure it is running. A browser may block requests from a file:// page.");
+  } finally {
+    $("modelsButton").disabled = false;
+  }
+}
+
+function gameLibraryForPrompt() {
+  const games = getGames();
+  if (!games.length) return "\n\nNo games have been added to the Game Library yet.";
+  return "\n\nGame Library data (use these details; do not invent missing links):\n" +
+    games.map((game,index) =>
+      `${index+1}. Title: ${game.name}; Category: ${game.category || "Uncategorized"}; Description: ${game.description || "No description"}; Cover image URL: ${game.image || "not provided"}; Play/download URL: ${game.link || "not provided"}`
+    ).join("\n");
+}
+
+async function generateProject() {
+  const userPrompt = $("prompt").value.trim();
+  const model = $("modelSelect").value;
+
+  if (!userPrompt) {
+    showToast("Describe what you want to build or change first.");
+    $("prompt").focus();
+    return;
+  }
+  if (!model) {
+    showToast("Select an installed Ollama model first.");
+    return;
+  }
+
+  $("prompt").value = "";
+  addMessage("user",userPrompt);
+  $("generateButton").disabled = true;
+  $("generateButton").textContent = "Thinking…";
+  setStatus("online","Planning and building…");
+  const pending = addMessage("assistant","Planning your project and selected features…",false);
+
+  try {
+    const history = conversation
+      .filter(message => message.type === projectType)
+      .slice(-8)
+      .map(message => ({role:message.role,content:message.content}));
+
+    const latest = history.pop();
+    let latestContent = latest?.content || userPrompt;
+    latestContent += getFeaturePrompt();
+    latestContent += getWebsiteThemePrompt();
+    if (projectType === "portfolio") latestContent += gameLibraryForPrompt();
+
+    const response = await fetch(OLLAMA + "/api/chat",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        model,
+        stream:false,
+        messages:[
+          {role:"system",content:`${BUILDER_GUIDE}\n\nProject type: ${configs[projectType].name}.\n${configs[projectType].system}`},
+          ...history,
+          {role:"user",content:latestContent}
+        ],
+        options:{temperature:Number($("creativity").value)/100,num_ctx:8192}
+      })
+    });
+
+    if (!response.ok) throw new Error("Ollama returned HTTP " + response.status);
+    const data = await response.json();
+    const answer = data?.message?.content?.trim();
+    if (!answer) throw new Error("Ollama returned an empty response.");
+
+    const html = extractHTML(answer);
+    pending.remove();
+    addMessage("assistant","Generated your " + configs[projectType].name + " with the selected feature ideas. It’s ready in the preview.");
+    showPreview(html);
+    setStatus("online","Project generated");
+  } catch (error) {
+    pending.remove();
+    const message = error instanceof TypeError
+      ? "Could not connect to Ollama. Check that it is running at localhost:11434. If opened as a file, the browser may block the request."
+      : error.message;
+    addMessage("assistant",message);
+    setStatus("error","Generation failed");
+  } finally {
+    $("generateButton").disabled = false;
+    $("generateButton").textContent = "✦ Generate";
+    $("prompt").focus();
+  }
+}
+
+function clearChat() {
+  conversation = [];
+  localStorage.removeItem(CHAT_KEY);
+  $("messages").innerHTML = `<div class="welcome" id="welcome"><h1 id="welcomeTitle"></h1><p id="welcomeText"></p><p><strong>Tip:</strong> Choose feature ideas, then describe the changes you want.</p></div>`;
+  setProjectType(projectType);
+  showToast("Chat cleared. Your generated project and selected ideas are kept.");
+}
+
+function safeFilename(value) {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,48) || "llamaforge-project";
+}
+
+function projectBaseName() {
+  return projectType === "game" ? "my-browser-game"
+    : projectType === "portfolio" ? "my-game-website"
+    : projectType === "gamepages" ? "my-game-pages"
+    : "my-web-app";
+}
+
+function downloadBlob(blob,filename) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url),1500);
+}
+
+function downloadHTML() {
+  if (!generatedHTML) return showToast("Generate a project first.");
+  downloadBlob(new Blob([generatedHTML],{type:"text/html;charset=utf-8"}),projectBaseName()+".html");
+  showToast("HTML downloaded. Upload it to a web host to publish it.");
+}
+
+/* Create an uncompressed ZIP using the built-in browser APIs and ZIP file format. */
+const CRC_TABLE = (() => {
+  const table = new Uint32Array(256);
+  for (let n=0;n<256;n++) {
+    let c=n;
+    for (let k=0;k<8;k++) c=(c&1)?(0xedb88320^(c>>>1)):(c>>>1);
+    table[n]=c>>>0;
+  }
+  return table;
+})();
+
+function crc32(bytes) {
+  let crc=0xffffffff;
+  for (const byte of bytes) crc=CRC_TABLE[(crc^byte)&0xff]^(crc>>>8);
+  return (crc^0xffffffff)>>>0;
+}
+
+function put16(view,offset,value) { view.setUint16(offset,value,true); }
+function put32(view,offset,value) { view.setUint32(offset,value>>>0,true); }
+
+function makeZip(files) {
+  const encoder = new TextEncoder();
+  const localParts = [];
+  const centralParts = [];
+  let offset = 0;
+
+  for (const file of files) {
+    const nameBytes = encoder.encode(file.name);
+    const dataBytes = typeof file.content === "string" ? encoder.encode(file.content) : file.content;
+    const crc = crc32(dataBytes);
+
+    const localHeader = new Uint8Array(30+nameBytes.length);
+    const localView = new DataView(localHeader.buffer);
+    put32(localView,0,0x04034b50);
+    put16(localView,4,20);
+    put16(localView,6,0x0800);
+    put16(localView,8,0);
+    put16(localView,10,0);
+    put16(localView,12,0);
+    put32(localView,14,crc);
+    put32(localView,18,dataBytes.length);
+    put32(localView,22,dataBytes.length);
+    put16(localView,26,nameBytes.length);
+    put16(localView,28,0);
+    localHeader.set(nameBytes,30);
+
+    localParts.push(localHeader,dataBytes);
+
+    const centralHeader = new Uint8Array(46+nameBytes.length);
+    const centralView = new DataView(centralHeader.buffer);
+    put32(centralView,0,0x02014b50);
+    put16(centralView,4,20);
+    put16(centralView,6,20);
+    put16(centralView,8,0x0800);
+    put16(centralView,10,0);
+    put16(centralView,12,0);
+    put16(centralView,14,0);
+    put32(centralView,16,crc);
+    put32(centralView,20,dataBytes.length);
+    put32(centralView,24,dataBytes.length);
+    put16(centralView,28,nameBytes.length);
+    put16(centralView,30,0);
+    put16(centralView,32,0);
+    put16(centralView,34,0);
+    put16(centralView,36,0);
+    put32(centralView,38,0);
+    put32(centralView,42,offset);
+    centralHeader.set(nameBytes,46);
+    centralParts.push(centralHeader);
+
+    offset += localHeader.length + dataBytes.length;
+  }
+
+  const centralSize = centralParts.reduce((sum,part)=>sum+part.length,0);
+  const end = new Uint8Array(22);
+  const endView = new DataView(end.buffer);
+  put32(endView,0,0x06054b50);
+  put16(endView,4,0);
+  put16(endView,6,0);
+  put16(endView,8,files.length);
+  put16(endView,10,files.length);
+  put32(endView,12,centralSize);
+  put32(endView,16,offset);
+  put16(endView,20,0);
+
+  return new Blob([...localParts,...centralParts,end],{type:"application/zip"});
+}
+
+function exportProjectZip() {
+  if (!generatedHTML) {
+    showToast("Generate a project before exporting it.");
+    return;
+  }
+
+  const base = projectBaseName();
+  const folder = safeFilename(base);
+  const readme = `${configs[projectType].name} — LlamaForge export
+
+Files:
+- index.html: The complete generated project.
+
+To run:
+1. Extract this ZIP file.
+2. Open index.html in a modern web browser.
+3. If your project needs browser features that do not work from a local file, run a local web server in this folder.
+
+This export contains the single-file HTML project generated by LlamaForge.
+It does not include a backend, hosted services, or private account system.
+`;
+
+  try {
+    const zip = makeZip([
+      {name:folder+"/index.html",content:generatedHTML},
+      {name:folder+"/README.txt",content:readme}
+    ]);
+    downloadBlob(zip,folder+".zip");
+    showToast("Project ZIP exported with index.html and README.txt.");
+  } catch (error) {
+    console.error(error);
+    showToast("Could not create the ZIP. Try downloading the HTML file instead.");
+  }
+}
+
+$("featureButton").addEventListener("click",() => {
+  $("featureSearch").value="";
+  renderFeatureList();
+  $("featureDialog").showModal();
+});
+$("closeFeatures").addEventListener("click",() => $("featureDialog").close());
+$("doneFeatures").addEventListener("click",() => {
+  $("featureDialog").close();
+  const count=(selectedFeatures[projectType]||[]).length;
+  showToast(count ? `${count} feature idea${count===1?"":"s"} ready for the next generation.` : "Feature selection cleared.");
+});
+$("featureSearch").addEventListener("input",renderFeatureList);
+$("clearFeatures").addEventListener("click",() => {
+  selectedFeatures[projectType]=[];
+  saveSelectedFeatures();
+  renderFeatureList();
+});
+$("addCustomFeature").addEventListener("click",addCustomFeature);
+$("customFeature").addEventListener("keydown",event => {
+  if (event.key==="Enter") { event.preventDefault(); addCustomFeature(); }
+});
+
+$("siteThemeButton").addEventListener("click",() => {
+  renderWebsiteThemes();
+  $("siteThemeDialog").showModal();
+});
+$("closeSiteTheme").addEventListener("click",() => $("siteThemeDialog").close());
+$("saveSiteTheme").addEventListener("click",() => {
+  localStorage.setItem(SITE_THEME_KEY,selectedWebsiteTheme);
+  $("siteThemeDialog").close();
+  showToast(websiteThemes[selectedWebsiteTheme].name+" will be used for your next website.");
+});
+$("sitePrimaryColor").addEventListener("input",() => { selectedWebsiteTheme="custom"; renderWebsiteThemes(); });
+$("siteSecondaryColor").addEventListener("input",() => { selectedWebsiteTheme="custom"; renderWebsiteThemes(); });
+
+$("gameForm").addEventListener("submit",event => {
+  event.preventDefault();
+  const name=$("gameName").value.trim();
+  if (!name) return;
+  const games=getGames();
+  games.push({
+    name,
+    category:$("gameCategory").value.trim(),
+    description:$("gameDescription").value.trim(),
+    image:safeHttpUrl($("gameImage").value.trim()),
+    link:safeHttpUrl($("gameLink").value.trim())
+  });
+  try {
+    localStorage.setItem(GAMES_KEY,JSON.stringify(games));
+    renderGameList();
+    $("gameForm").reset();
+    showToast("Game added to your browser's library.");
+  } catch { showToast("Could not save the game. Check browser storage."); }
+});
+
+$("libraryButton").addEventListener("click",() => { renderGameList(); $("libraryDialog").showModal(); });
+$("closeLibrary").addEventListener("click",() => $("libraryDialog").close());
+$("generateSiteButton").addEventListener("click",() => {
+  $("libraryDialog").close();
+  setProjectType("portfolio");
+  $("prompt").value="Create a polished, responsive website to showcase the games in my library. Include game cards, categories, search, and buttons for supplied play or download links.";
+  $("prompt").focus();
+  showToast("Selected features, style, and game library will be included.");
+});
+
+$("themeButton").addEventListener("click",() => { renderBuilderThemes(); $("themeDialog").showModal(); });
+$("closeTheme").addEventListener("click",() => $("themeDialog").close());
+
+$("generateButton").addEventListener("click",generateProject);
+$("prompt").addEventListener("keydown",event => {
+  if (event.key==="Enter"&&!event.shiftKey) { event.preventDefault(); generateProject(); }
+});
+$("modelsButton").addEventListener("click",loadModels);
+$("checkButton").addEventListener("click",loadModels);
+$("clearButton").addEventListener("click",clearChat);
+$("newButton").addEventListener("click",clearChat);
+$("downloadButton").addEventListener("click",downloadHTML);
+$("exportZipButton").addEventListener("click",exportProjectZip);
+$("deviceSelect").addEventListener("change",setDeviceSize);
+$("modelSelect").addEventListener("change",() => localStorage.setItem("llamaforge-model",$("modelSelect").value));
+
+$("creativity").addEventListener("input",() => {
+  $("creativityValue").textContent=$("creativity").value+"%";
+  localStorage.setItem(SETTINGS_KEY,JSON.stringify({creativity:Number($("creativity").value)}));
+});
+$("refreshButton").addEventListener("click",() => {
+  if (!generatedHTML) return showToast("Generate a project preview first.");
+  showPreview(generatedHTML);
+  showToast("Preview refreshed.");
+});
+$("openButton").addEventListener("click",() => {
+  if (!generatedHTML) return showToast("Generate a project first.");
+  const url=URL.createObjectURL(new Blob([generatedHTML],{type:"text/html"}));
+  window.open(url,"_blank","noopener");
+  setTimeout(()=>URL.revokeObjectURL(url),60000);
+});
+
+document.querySelectorAll("[data-type]").forEach(button => {
+  button.addEventListener("click",()=>setProjectType(button.dataset.type));
+});
+document.querySelectorAll(".top-tab").forEach(button => {
+  button.addEventListener("click",() => {
+    document.querySelectorAll(".top-tab").forEach(tab=>tab.classList.remove("active"));
+    button.classList.add("active");
+    const previewOnly=button.dataset.view==="preview";
+    document.querySelector(".chat").classList.toggle("hidden",previewOnly);
+    $("previewPanel").classList.toggle("hidden",button.dataset.view==="workspace");
+  });
+});
+
+try { applyBuilderTheme(localStorage.getItem(BUILDER_THEME_KEY)||"cyberpunk"); }
+catch { applyBuilderTheme("cyberpunk"); }
+
+try {
+  const settings=JSON.parse(localStorage.getItem(SETTINGS_KEY)||"{}");
+  if (Number.isFinite(settings.creativity)) $("creativity").value=Math.max(0,Math.min(100,settings.creativity));
+} catch {}
+
+$("creativityValue").textContent=$("creativity").value+"%";
+setProjectType(projectType);
+restoreChat();
+renderGameList();
+
+const savedSiteTheme=localStorage.getItem(SITE_THEME_KEY);
+if (savedSiteTheme&&websiteThemes[savedSiteTheme]) selectedWebsiteTheme=savedSiteTheme;
+renderWebsiteThemes();
+
+if (generatedHTML) showPreview(generatedHTML);
+loadModels();
+</script>
+</body>
+</html>
